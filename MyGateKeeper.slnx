@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="AuthorizationServer/AuthorizationServer.csproj" Id="500f9249-0d8f-4cc0-8cd1-b5acbda58e90" />
+  <Project Path="AuthServer/AuthServer.csproj" Id="986cf561-03e3-4b01-9922-e718362df475" />
+  <Project Path="DummyBackend/DummyBackend.csproj" />
+  <Project Path="MyGateKeeper/MyGateKeeper.csproj" />
+  <Project Path="ResourceServer/ResourceServer.csproj" Id="0e0e6c7e-7e01-410b-8da0-8f90d5dd49e9" />
+</Solution>
