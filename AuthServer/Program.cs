@@ -6,14 +6,24 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // 🔥 DB
-builder.Services.AddDbContext<AuthDbContext>(options =>
+builder.Services.AddDbContext<AuthenticationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // 🔥 services
 builder.Services.AddControllers();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        });
+});
 builder.Services.AddHttpClient("authz", client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7184/");
+    client.BaseAddress = new Uri("http://localhost:5206/");
 })
 .ConfigurePrimaryHttpMessageHandler(() =>
 {
@@ -23,7 +33,7 @@ builder.Services.AddHttpClient("authz", client =>
             HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
     };
 });
-builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // Swagger
@@ -31,7 +41,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
-
+app.UseCors("AllowAll");
 // pipeline
 if (app.Environment.IsDevelopment())
 {
@@ -39,7 +49,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+
 
 // ❗ no authentication here (this is token issuer)
 app.UseAuthorization();

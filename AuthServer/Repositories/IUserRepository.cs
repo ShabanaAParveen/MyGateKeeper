@@ -4,6 +4,6 @@ namespace AuthServer.Repositories
 {
     public interface IUserRepository
     {
-        UserInfo? GetUser(string username, string password);
+        UserAccount? GetUser(string username, string password);
     }
 }

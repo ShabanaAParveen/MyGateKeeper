@@ -8,6 +8,11 @@ namespace AuthorizationServer.DatabaseContext
         public AuthZDbContext(DbContextOptions<AuthZDbContext> options)
             : base(options) { }
 
-        public DbSet<UserRole> UserRoles { get; set; }
+        public DbSet<Tenant> Tenants { get; set; }
+        public DbSet<BusinessUnit> BusinessUnits { get; set; }
+        public DbSet<RoleDefinition> RoleDefinitions { get; set; }
+        public DbSet<UserAssignment> UserAssignments { get; set; }
+        public DbSet<RoleApplicationGrant> RoleApplicationGrants { get; set; }
+        public DbSet<RoleApplicationControlGrant> RoleApplicationControlGrants { get; set; }
     }
 }

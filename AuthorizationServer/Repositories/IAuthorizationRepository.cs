@@ -1,7 +1,11 @@
-﻿namespace AuthorizationServer.Repositories
+using AuthorizationServer.Entities;
+using AuthorizationServer.Models;
+
+namespace AuthorizationServer.Repositories
 {
     public interface IAuthorizationRepository
     {
-        List<string> GetRoles(int userId);
+        List<RoleDefinition> GetRoles(string code);
+        DashboardAuthorizationContextDto? GetDashboardContext(string userCode);
     }
 }

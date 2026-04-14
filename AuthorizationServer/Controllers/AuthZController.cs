@@ -1,6 +1,7 @@
-﻿using AuthorizationServer.Repositories;
-using Microsoft.AspNetCore.Identity.Data;
+using AuthorizationServer.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace AuthorizationServer.Controllers
 {
@@ -10,15 +11,38 @@ namespace AuthorizationServer.Controllers
     {
         private readonly IAuthorizationRepository _repo = repo;
 
-        [HttpGet("roles/{userId}")]
-        public IActionResult GetRoles(int userId)
+        [HttpGet("roles/{code}")]
+        public IActionResult GetRoles(string code)
         {
-            var roles = _repo.GetRoles(userId);
+            var roles = _repo.GetRoles(code);
 
-            if (roles == null || roles.Count == 0)
+            if (roles.Count == 0)
+            {
                 return NotFound();
+            }
 
             return Ok(roles);
+        }
+
+        [Authorize]
+        [HttpPost("dashboard-context")]
+        public IActionResult GetDashboardContext()
+        {
+            var userCode = User.FindFirstValue("userCode");
+
+            if (string.IsNullOrWhiteSpace(userCode))
+            {
+                return Unauthorized("Missing user code claim");
+            }
+
+            var context = _repo.GetDashboardContext(userCode);
+
+            if (context is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(context);
         }
     }
 }

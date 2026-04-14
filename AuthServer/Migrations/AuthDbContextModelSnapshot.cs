@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace AuthServer.Migrations
 {
-    [DbContext(typeof(AuthDbContext))]
+    [DbContext(typeof(AuthenticationDbContext))]
     partial class AuthDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
@@ -21,7 +21,7 @@ namespace AuthServer.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("AuthServer.Entity.UserInfo", b =>
+            modelBuilder.Entity("AuthServer.Entity.UserAccount", b =>
                 {
                     b.Property<int>("UserId")
                         .ValueGeneratedOnAdd()

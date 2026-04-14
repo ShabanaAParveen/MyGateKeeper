@@ -5,16 +5,16 @@ namespace AuthServer.Repositories
 {
     public class UserRepository:IUserRepository
     {
-        private readonly AuthDbContext _context;
+        private readonly AuthenticationDbContext _context;
 
-        public UserRepository(AuthDbContext context)
+        public UserRepository(AuthenticationDbContext context)
         {
             _context = context;
         }
 
-        public UserInfo? GetUser(string username, string password)
+        public UserAccount? GetUser(string username, string password)
         {
-            return _context.UserInfos.FirstOrDefault(u => u.UserName == username && u.Password == password);
+            return _context.UserAccounts.FirstOrDefault(u => u.UserName == username && u.PwdHash == password);
         }
     }
 }
