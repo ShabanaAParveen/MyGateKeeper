@@ -8,7 +8,11 @@ namespace ResourceServer.DatabaseContext
        public ResourceDBContext(DbContextOptions<ResourceDBContext> options)
                 : base(options) { }
 
-       public DbSet<Application> Applications { get; set; }
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Application>().ToTable("Application");
+        }
+        public DbSet<Application> Applications { get; set; }
         
     }
 }

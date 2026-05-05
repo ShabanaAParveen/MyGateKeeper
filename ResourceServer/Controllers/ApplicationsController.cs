@@ -40,6 +40,26 @@ namespace ResourceServer.Controllers
 
             return Ok(applications);
         }
+
+        [HttpGet("allapplications")]
+        public async Task<IActionResult> GetAllApplications()
+        {
+            var applications = await _context.Applications
+            .OrderBy(x => x.SortOrder)
+            .Select(x => new ApplicationCatalogItemDto
+            {
+                Id = x.Code,
+                Name = x.Name,
+                Description = x.Description,
+                LaunchUrl = x.LaunchUrl,
+                IconUrl = x.IconUrl,
+                Maintainer = x.Maintainer,
+                ContactEmail = x.ContactEmail
+            })
+            .ToListAsync();
+            return Ok(applications);
+        }
+
     }
 
     public class ApplicationCatalogItemDto

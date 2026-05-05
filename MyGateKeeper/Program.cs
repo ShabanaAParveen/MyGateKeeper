@@ -1,3 +1,6 @@
+using InsightTelemetryCore;
+using InsightTelemetryCore.Correlations;
+using InsightTelemetryCore.Sinks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
@@ -17,6 +20,21 @@ builder.Services.AddHttpClient("authz", (sp, client) =>
     var config = sp.GetRequiredService<IOptions<ServiceUrls>>().Value;
     client.BaseAddress = new Uri(config.AuthZ.BaseUrl);
 });
+builder.Services.AddHttpClient("resource", (sp, client) =>
+{
+    var config = sp.GetRequiredService<IOptions<ServiceUrls>>().Value;
+    client.BaseAddress = new Uri(config.Resource.BaseUrl);
+});
+
+builder.Services.AddSingleton<ICorrelationContextAccessor, CorrelationContextAccessor>();
+builder.Services.AddSingleton<IInvestigationTelemetrySink>(sp =>
+{
+    var environment = sp.GetRequiredService<IWebHostEnvironment>();
+    var logPath = Path.Combine(environment.ContentRootPath, "logs", "investigations");
+    return new FileSystemInvestigationTelemetrySink(logPath);
+});
+builder.Services.AddSingleton<InvestigationLogger>();
+
 // 1. Configs & Kestrel
 builder.WebHost.ConfigureKestrel(options => options.Configure(builder.Configuration.GetSection("Kestrel")));
 builder.Services.Configure<ServiceUrls>(builder.Configuration.GetSection("Services"));
@@ -32,7 +50,16 @@ builder.Services.AddRateLimiter(options => {
         opt.Window = TimeSpan.FromSeconds(1);
     });
 });
-
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        });
+});
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options => {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -46,12 +73,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 builder.Services.AddControllers();
+builder.Services.AddScoped<MyGateKeeper.Services.DashboardOrchestrationService>();
 
 var app = builder.Build();
-
+app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<AnalyticsLogger>();
 
 // ==========================================
 // ✅ LOGIN & DASHBOARD ORCHESTRATION MIDDLEWARE
@@ -66,6 +95,9 @@ app.Use(async (context, next) =>
         var clientFactory = context.RequestServices.GetRequiredService<IHttpClientFactory>();
         var config = context.RequestServices.GetRequiredService<IConfiguration>();
         var client = clientFactory.CreateClient();
+        var correlationId = context.Request.Headers.TryGetValue("X-Correlation-Id", out var correlationHeader)
+            ? correlationHeader.ToString()
+            : context.TraceIdentifier;
 
         // 1. LOGIN -> AUTHENTICATION SERVER (Port 5281 from auth-cluster)
         var authServer = config.GetValue<string>("ReverseProxy:Clusters:auth-cluster:Destinations:d1:Address")?.TrimEnd('/');
@@ -75,6 +107,7 @@ app.Use(async (context, next) =>
         loginReq.Content = new StreamContent(context.Request.Body);
         loginReq.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
         loginReq.Content.Headers.ContentLength = context.Request.ContentLength;
+        loginReq.Headers.TryAddWithoutValidation("X-Correlation-Id", correlationId);
 
         var loginRes = await client.SendAsync(loginReq);
         if (!loginRes.IsSuccessStatusCode)
@@ -109,6 +142,7 @@ app.Use(async (context, next) =>
         // ✅ Try setting the header manually to be 100% sure of the format
         // dashReq.Headers.TryAddWithoutValidation("Authorization", $"Bearer {token}");
         dashReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        dashReq.Headers.TryAddWithoutValidation("X-Correlation-Id", correlationId);
         var dashRes = await client.SendAsync(dashReq);
 
 
@@ -134,10 +168,16 @@ app.Run();
 public class ServiceUrls
 {
     public AuthZService AuthZ { get; set; } = new();
+    public ResourceService Resource { get; set; } = new();
     public ServiceDetail AuthzServer { get; set; } = new(); // Authorization (Dashboard Context)
 }
 
 public class AuthZService
+{
+    public string BaseUrl { get; set; } = string.Empty;
+}
+
+public class ResourceService
 {
     public string BaseUrl { get; set; } = string.Empty;
 }

@@ -23,7 +23,7 @@ INSERT INTO [Applications]
     [IsActive],
     [SortOrder],
     [CreatedAtUtc],
-    [UpdatedAtUtc]
+    [ModifiedAtUtc]
 )
 VALUES
 (
